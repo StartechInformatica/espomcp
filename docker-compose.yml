@@ -13,9 +13,9 @@ services:
     restart: unless-stopped
     # Porta sull'host: serve solo per client esterni (Claude Code, reverse proxy).
     # Se lo usi solo da TrueForge sulla rete condivisa puoi rimuoverla
-    # o limitarla a "127.0.0.1:3000:3000".
+    # o limitarla a "127.0.0.1:3080:3000".
     ports:
-      - "${MCP_HOST_PORT:-3000}:3000"
+      - "${MCP_HOST_PORT:-3080}:3000"
     environment:
       # --- EspoCRM ---
       ESPOCRM_URL: ${ESPOCRM_URL}
@@ -41,7 +41,7 @@ services:
     networks:
       - default
       # Rete condivisa con TrueForge: da lì l'URL è http://espomcp:3000/mcp
-      - mcp-net
+      - trueforge_default
       # Se EspoCRM gira come container sullo stesso host, aggiungi anche la sua rete
       # e usa ESPOCRM_URL=http://<nome-servizio-espocrm>
       # - espocrm_net
@@ -54,9 +54,9 @@ volumes:
 
 networks:
   # Creala una volta sola: docker network create mcp-net (o da Dockhand > Networks)
-  mcp-net:
+  trueforge_default:
     external: true
-    name: ${MCP_SHARED_NETWORK:-mcp-net}
+    name: ${MCP_SHARED_NETWORK:-trueforge_default}
   # espocrm_net:
   #   external: true
   #   name: espocrm_default   # nome reale della rete dello stack EspoCRM
