@@ -1,0 +1,62 @@
+# Stack Dockhand: EspoCRM MCP Server (Streamable HTTP)
+# Le variabili ${...} vanno definite nella sezione "Environment variables"
+# dello stack in Dockhand (oppure in un file .env accanto a questo compose).
+
+services:
+  espomcp:
+    build:
+      context: .
+      args:
+        ESPOMCP_REF: ${ESPOMCP_REF:-8e180099e6798ac81b9826e9408fc41cb4fac37d}
+    image: espomcp-http:latest
+    container_name: espomcp
+    restart: unless-stopped
+    # Porta sull'host: serve solo per client esterni (Claude Code, reverse proxy).
+    # Se lo usi solo da TrueForge sulla rete condivisa puoi rimuoverla
+    # o limitarla a "127.0.0.1:3000:3000".
+    ports:
+      - "${MCP_HOST_PORT:-3000}:3000"
+    environment:
+      # --- EspoCRM ---
+      ESPOCRM_URL: ${ESPOCRM_URL}
+      ESPOCRM_API_KEY: ${ESPOCRM_API_KEY}
+      ESPOCRM_AUTH_METHOD: ${ESPOCRM_AUTH_METHOD:-apikey}
+      ESPOCRM_SECRET_KEY: ${ESPOCRM_SECRET_KEY:-}
+      RATE_LIMIT: ${RATE_LIMIT:-100}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-30000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # --- Server MCP HTTP ---
+      MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN}
+      MCP_AUTH_TOKEN_READONLY: ${MCP_AUTH_TOKEN_READONLY:-}
+      MCP_TOOLS_DENY: ${MCP_TOOLS_DENY:-}
+      MCP_TOOL_ANNOTATIONS: ${MCP_TOOL_ANNOTATIONS:-true}
+      MCP_DESTRUCTIVE_TOOLS: ${MCP_DESTRUCTIVE_TOOLS:-}
+      MCP_PATH: ${MCP_PATH:-/mcp}
+      MCP_ALLOW_PATH_TOKEN: ${MCP_ALLOW_PATH_TOKEN:-true}
+      MCP_JSON_RESPONSE: ${MCP_JSON_RESPONSE:-true}
+      MCP_SESSION_TTL_MINUTES: ${MCP_SESSION_TTL_MINUTES:-60}
+      MCP_MAX_SESSIONS: ${MCP_MAX_SESSIONS:-50}
+    volumes:
+      - espomcp-logs:/app/logs
+    networks:
+      - default
+      # Rete condivisa con TrueForge: da lì l'URL è http://espomcp:3000/mcp
+      - mcp-net
+      # Se EspoCRM gira come container sullo stesso host, aggiungi anche la sua rete
+      # e usa ESPOCRM_URL=http://<nome-servizio-espocrm>
+      # - espocrm_net
+    # Se EspoCRM gira direttamente sull'host: ESPOCRM_URL=http://host.docker.internal:<porta>
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+volumes:
+  espomcp-logs:
+
+networks:
+  # Creala una volta sola: docker network create mcp-net (o da Dockhand > Networks)
+  mcp-net:
+    external: true
+    name: ${MCP_SHARED_NETWORK:-mcp-net}
+  # espocrm_net:
+  #   external: true
+  #   name: espocrm_default   # nome reale della rete dello stack EspoCRM
